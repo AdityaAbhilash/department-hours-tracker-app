@@ -11,7 +11,9 @@ export function calculateDuration(signInTime, signOutTime) {
 export function calculateLiveDuration(signInTime, now = new Date()) {
   if (!signInTime) return 0;
   const diffMs = new Date(now) - new Date(signInTime);
-  return diffMs > 0 ? Math.round(diffMs / 60000) : 0;
+  // Use floor, not round: a minute should only count once it has fully
+  // elapsed (e.g. 30s in should still read 0m, not round up to 1m).
+  return diffMs > 0 ? Math.floor(diffMs / 60000) : 0;
 }
 
 // Get the "effective" minutes for a session-like record (handles active + holiday entries)
