@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Sun, CalendarDays, CalendarRange, Flame, TrendingUp, Timer, CalendarCheck2, LogIn, PartyPopper } from 'lucide-react';
 import { getTodayData, getWeekData, getMonthData, getInsights } from '../store/computations';
 import { addSession, updateSession, getActiveSession } from '../store/db';
+import { calculateDuration } from '../utils/durationUtils';
 import { useSettings } from '../hooks/useSettings';
 import StatCard from '../components/StatCard';
 import ProgressCard from '../components/ProgressCard';
@@ -57,7 +58,11 @@ export default function Dashboard() {
   const handleSignOut = () => {
     const active = getActiveSession();
     if (!active) return;
-    updateSession(active.id, { signOutTime: new Date().toISOString() });
+    const signOutTime = new Date().toISOString();
+    updateSession(active.id, {
+      signOutTime,
+      durationMinutes: calculateDuration(active.signInTime, signOutTime)
+    });
     refreshAll();
   };
 
