@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { calculateDuration } from '../utils/durationUtils';
 
 const toTimeInput = (dateInput) => {
   if (!dateInput) return '';
@@ -37,6 +38,7 @@ export default function SessionFormModal({ session, onClose, onSave, error }) {
       date: form.date,
       signInTime: signInTime.toISOString(),
       signOutTime: signOutTime ? signOutTime.toISOString() : null,
+      durationMinutes: signOutTime ? calculateDuration(signInTime.toISOString(), signOutTime.toISOString()) : null,
       notes: form.notes,
       isHoliday: false
     });

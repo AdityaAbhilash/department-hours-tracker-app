@@ -17,7 +17,12 @@ export function calculateLiveDuration(signInTime, now = new Date()) {
 // Get the "effective" minutes for a session-like record (handles active + holiday entries)
 export function getEffectiveMinutes(session, now = new Date()) {
   if (session.isHoliday) return session.durationMinutes || 0;
-  if (session.signOutTime) return session.durationMinutes || 0;
+  if (session.signOutTime) {
+    // durationMinutes may not have been stored (e.g. older sessions, or a
+    // sign-out/manual entry that only saved signIn/signOutTime) — fall back
+    // to computing it directly from the timestamps instead of showing 0.
+    return session.durationMinutes ?? calculateDuration(session.signInTime, session.signOutTime);
+  }
   return calculateLiveDuration(session.signInTime, now);
 }
 
