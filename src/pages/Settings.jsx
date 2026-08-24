@@ -173,6 +173,10 @@ export default function Settings() {
         </button>
       </div>
 
+      <p className="text-center text-xs text-gray-400 dark:text-gray-600 pt-2">
+        Build: {typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'unknown'}
+      </p>
+
       {clearConfirm && (
         <ConfirmDialog
           title="Clear all data?"

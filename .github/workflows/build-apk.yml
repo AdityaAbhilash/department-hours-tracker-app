@@ -23,10 +23,33 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Restore stable debug keystore
+        # Keeps the same signing key across every CI run, so a new APK can
+        # always be installed as an "update" over the previous one without
+        # needing to uninstall first (Android blocks updates on signature
+        # mismatch). Without this, Gradle would auto-generate a brand new
+        # random debug key on every fresh runner.
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+
+      - name: Generate debug keystore if missing
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkey -v -keystore ~/.android/debug.keystore \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
       - name: Install dependencies
         run: npm install
 
       - name: Build web assets
+        env:
+          VITE_BUILD_ID: ${{ github.sha }}-${{ github.run_number }}
         run: npm run build
 
       - name: Add Android platform (if not already present)
