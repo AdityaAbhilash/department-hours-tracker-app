@@ -1,0 +1,6 @@
+{
+  "appId": "com.department.hourstracker",
+  "appName": "Department Hours Tracker",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
