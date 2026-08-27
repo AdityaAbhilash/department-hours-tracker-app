@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Sun, Moon, Check, Download, Upload, Trash2 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { useSettings } from '../hooks/useSettings';
 import { useTheme } from '../hooks/useTheme';
 import { exportAllData, importAllData, clearAllData } from '../store/db';
@@ -41,13 +42,50 @@ export default function Settings() {
     update({ theme: value });
   };
 
-  const handleExportData = () => {
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportData = async () => {
     const data = exportAllData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const json = JSON.stringify(data, null, 2);
+    const fileName = `department-hours-backup-${new Date().toISOString().slice(0, 10)}.json`;
+
+    if (Capacitor.isNativePlatform()) {
+      // A blob <a download> link (the old approach) silently does nothing
+      // inside the Android WebView — there's no browser chrome to catch the
+      // download. Instead, write the file to the device and hand it to the
+      // native Share sheet so the user can save it to Drive, Files, email
+      // it to themselves, etc.
+      setExporting(true);
+      try {
+        const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+        const written = await Filesystem.writeFile({
+          path: fileName,
+          data: json,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8
+        });
+        await Share.share({
+          title: 'Department Hours backup',
+          text: 'Your Department Hours Tracker backup file.',
+          url: written.uri
+        });
+      } catch (err) {
+        console.error('Export failed', err);
+        alert('Could not create the backup file. Please try again.');
+      } finally {
+        setExporting(false);
+      }
+      return;
+    }
+
+    // Plain-browser fallback (e.g. `npm run dev`), where the blob-link
+    // approach works fine.
+    const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `department-hours-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -159,8 +197,8 @@ export default function Settings() {
         {importMessage && <div className="text-sm text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950 px-3 py-2 rounded-xl">{importMessage}</div>}
 
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={handleExportData} className="btn-secondary flex items-center justify-center gap-2 text-sm">
-            <Download className="w-4 h-4" /> Backup Data
+          <button onClick={handleExportData} disabled={exporting} className="btn-secondary flex items-center justify-center gap-2 text-sm disabled:opacity-60">
+            <Download className="w-4 h-4" /> {exporting ? 'Preparing...' : 'Backup Data'}
           </button>
           <button onClick={handleImportClick} className="btn-secondary flex items-center justify-center gap-2 text-sm">
             <Upload className="w-4 h-4" /> Restore Backup
