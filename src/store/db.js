@@ -11,7 +11,8 @@ const KEYS = {
   SESSIONS: 'dht_sessions',
   EXAMS: 'dht_exams',
   TIMETABLE: 'dht_timetable',
-  LINKS: 'dht_links'
+  LINKS: 'dht_links',
+  DEADLINES: 'dht_deadlines'
 };
 
 const DEFAULT_SETTINGS = {
@@ -208,6 +209,58 @@ export function deleteLink(id) {
   saveAllLinks(getAllLinks().filter((l) => l.id !== id));
 }
 
+// ---------- Deadlines (assignments / project submissions) ----------
+// Every read auto-purges entries whose due date/time has already passed, so
+// the list (and any status counts derived from it) always self-cleans
+// without needing a background timer running somewhere.
+function purgeExpiredDeadlines() {
+  const all = read(KEYS.DEADLINES, []);
+  const now = new Date();
+  const kept = all.filter((d) => new Date(d.dueAt) >= now);
+  if (kept.length !== all.length) write(KEYS.DEADLINES, kept);
+  return kept;
+}
+
+export function getAllDeadlines() {
+  return purgeExpiredDeadlines();
+}
+
+export function saveAllDeadlines(deadlines) {
+  write(KEYS.DEADLINES, deadlines);
+}
+
+export function addDeadline(deadline) {
+  const deadlines = purgeExpiredDeadlines();
+  const newDeadline = {
+    id: generateId(),
+    assignmentNumber: '',
+    notes: '',
+    reminders: [],
+    createdAt: new Date().toISOString(),
+    ...deadline
+  };
+  deadlines.push(newDeadline);
+  saveAllDeadlines(deadlines);
+  return newDeadline;
+}
+
+export function updateDeadline(id, updates) {
+  const deadlines = purgeExpiredDeadlines();
+  const idx = deadlines.findIndex((d) => d.id === id);
+  if (idx === -1) return null;
+  deadlines[idx] = { ...deadlines[idx], ...updates };
+  saveAllDeadlines(deadlines);
+  return deadlines[idx];
+}
+
+export function deleteDeadline(id) {
+  saveAllDeadlines(purgeExpiredDeadlines().filter((d) => d.id !== id));
+}
+
+export function getPendingDeadlineCount() {
+  return purgeExpiredDeadlines().length;
+}
+
 // ---------- Export / Import (for backup, since there is no server database) ----------
 export function exportAllData() {
   return {
@@ -216,6 +269,7 @@ export function exportAllData() {
     exams: getAllExams(),
     timetable: getTimetable(),
     links: getAllLinks(),
+    deadlines: getAllDeadlines(),
     exportedAt: new Date().toISOString()
   };
 }
@@ -226,6 +280,7 @@ export function importAllData(data) {
   if (data.exams) write(KEYS.EXAMS, data.exams);
   if (data.timetable) write(KEYS.TIMETABLE, data.timetable);
   if (data.links) write(KEYS.LINKS, data.links);
+  if (data.deadlines) write(KEYS.DEADLINES, data.deadlines);
 }
 
 export function clearAllData() {
