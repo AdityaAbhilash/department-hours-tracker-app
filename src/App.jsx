@@ -6,6 +6,7 @@ import History from './pages/History';
 import Timetable from './pages/Timetable';
 import Exams from './pages/Exams';
 import Deadlines from './pages/Deadlines';
+import Capture from './pages/Capture';
 import Links from './pages/Links';
 import Statistics from './pages/Statistics';
 import Settings from './pages/Settings';
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="/timetable" element={<Timetable />} />
             <Route path="/exams" element={<Exams />} />
             <Route path="/deadlines" element={<Deadlines />} />
+            <Route path="/capture" element={<Capture />} />
             <Route path="/links" element={<Links />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/settings" element={<Settings />} />

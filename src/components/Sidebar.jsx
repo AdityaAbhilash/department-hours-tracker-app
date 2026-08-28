@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, History, BarChart3, Settings, X, Clock, CalendarClock, FileQuestion, Link2, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, History, BarChart3, Settings, X, Clock, CalendarClock, FileQuestion, Link2, ClipboardList, Sparkles } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: '/timetable', label: 'Timetable', icon: CalendarClock },
   { to: '/exams', label: 'Exams', icon: FileQuestion },
   { to: '/deadlines', label: 'Deadlines', icon: ClipboardList },
+  { to: '/capture', label: 'Capture', icon: Sparkles },
   { to: '/links', label: 'Links', icon: Link2 },
   { to: '/statistics', label: 'Statistics', icon: BarChart3 },
   { to: '/settings', label: 'Settings', icon: Settings }

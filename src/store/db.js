@@ -12,7 +12,8 @@ const KEYS = {
   EXAMS: 'dht_exams',
   TIMETABLE: 'dht_timetable',
   LINKS: 'dht_links',
-  DEADLINES: 'dht_deadlines'
+  DEADLINES: 'dht_deadlines',
+  CAPTURE: 'dht_capture'
 };
 
 const DEFAULT_SETTINGS = {
@@ -261,6 +262,59 @@ export function getPendingDeadlineCount() {
   return purgeExpiredDeadlines().length;
 }
 
+// ---------- Capture (flexible tasks / notes / questions / ideas) ----------
+// Deliberately unopinionated: every field except `title` is optional, so it
+// can hold anything from a one-line reminder to a fully broken-down task
+// with subtasks, a course, a deadline, and reminders. Nothing here is ever
+// auto-deleted (unlike Deadlines) — completed items just move into a
+// collapsible "Done" section, since this is meant to be a durable personal
+// log, not a self-cleaning queue.
+export function getAllCaptureItems() {
+  return read(KEYS.CAPTURE, []);
+}
+
+export function saveAllCaptureItems(items) {
+  write(KEYS.CAPTURE, items);
+}
+
+export function addCaptureItem(item) {
+  const items = getAllCaptureItems();
+  const newItem = {
+    id: generateId(),
+    type: 'task',
+    details: '',
+    subject: '',
+    priority: '',
+    dueAt: null,
+    reminders: [],
+    subtasks: [],
+    status: 'open',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...item
+  };
+  items.unshift(newItem);
+  saveAllCaptureItems(items);
+  return newItem;
+}
+
+export function updateCaptureItem(id, updates) {
+  const items = getAllCaptureItems();
+  const idx = items.findIndex((i) => i.id === id);
+  if (idx === -1) return null;
+  items[idx] = { ...items[idx], ...updates, updatedAt: new Date().toISOString() };
+  saveAllCaptureItems(items);
+  return items[idx];
+}
+
+export function deleteCaptureItem(id) {
+  saveAllCaptureItems(getAllCaptureItems().filter((i) => i.id !== id));
+}
+
+export function getOpenCaptureCount() {
+  return getAllCaptureItems().filter((i) => i.status !== 'done').length;
+}
+
 // ---------- Export / Import (for backup, since there is no server database) ----------
 export function exportAllData() {
   return {
@@ -270,6 +324,7 @@ export function exportAllData() {
     timetable: getTimetable(),
     links: getAllLinks(),
     deadlines: getAllDeadlines(),
+    capture: getAllCaptureItems(),
     exportedAt: new Date().toISOString()
   };
 }
@@ -281,6 +336,7 @@ export function importAllData(data) {
   if (data.timetable) write(KEYS.TIMETABLE, data.timetable);
   if (data.links) write(KEYS.LINKS, data.links);
   if (data.deadlines) write(KEYS.DEADLINES, data.deadlines);
+  if (data.capture) write(KEYS.CAPTURE, data.capture);
 }
 
 export function clearAllData() {

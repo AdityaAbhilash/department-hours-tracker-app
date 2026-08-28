@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Sun, CalendarDays, CalendarRange, Flame, TrendingUp, Timer, CalendarCheck2, LogIn, PartyPopper, ClipboardList } from 'lucide-react';
+import { Sun, CalendarDays, CalendarRange, Flame, TrendingUp, Timer, CalendarCheck2, LogIn, PartyPopper, ClipboardList, Sparkles } from 'lucide-react';
 import { getTodayData, getWeekData, getMonthData, getInsights } from '../store/computations';
-import { addSession, updateSession, getActiveSession, getAllDeadlines } from '../store/db';
+import { addSession, updateSession, getActiveSession, getAllDeadlines, getOpenCaptureCount } from '../store/db';
 import { calculateDuration } from '../utils/durationUtils';
 import { useSettings } from '../hooks/useSettings';
 import StatCard from '../components/StatCard';
@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [holidayModalOpen, setHolidayModalOpen] = useState(false);
   const [deadlines, setDeadlines] = useState(getAllDeadlines());
+  const [captureCount, setCaptureCount] = useState(getOpenCaptureCount());
 
   const refreshAll = useCallback(() => {
     setToday(getTodayData());
@@ -30,6 +31,7 @@ export default function Dashboard() {
     setMonth(getMonthData(0));
     setInsights(getInsights());
     setDeadlines(getAllDeadlines());
+    setCaptureCount(getOpenCaptureCount());
   }, [weekOffset]);
 
   useEffect(() => {
@@ -91,7 +93,7 @@ export default function Dashboard() {
 
       {today.isCurrentlyIn && today.activeSession && <LiveTimer signInTime={today.activeSession.signInTime} onSignOut={handleSignOut} />}
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         <StatCard icon={Sun} label="Today" value={formatDuration(today.totalMinutes)} accent="brand" />
         <StatCard
           icon={CalendarDays}
@@ -115,6 +117,9 @@ export default function Dashboard() {
             subValue={deadlines.filter((d) => new Date(d.dueAt) - new Date() < 86400000).length > 0 ? `${deadlines.filter((d) => new Date(d.dueAt) - new Date() < 86400000).length} due within 24h` : 'None due soon'}
             accent={deadlines.filter((d) => new Date(d.dueAt) - new Date() < 86400000).length > 0 ? 'red' : 'neutral'}
           />
+        </Link>
+        <Link to="/capture" className="block">
+          <StatCard icon={Sparkles} label="Open Items" value={captureCount} subValue="Tasks, notes & more" accent={captureCount > 0 ? 'brand' : 'neutral'} />
         </Link>
         <div className="card p-5 flex flex-col justify-between gap-3">
           <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Current Status</span>
