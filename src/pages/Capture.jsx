@@ -443,29 +443,31 @@ export default function Capture() {
         <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-brand-500" /> Capture
         </h1>
-        <p className="text-sm text-gray-400 mt-1">Tasks, notes, questions, ideas \u2014 anything you don't want to forget. Sort it out later.</p>
+        <p className="text-sm text-gray-400 mt-1">Tasks, notes, questions, ideas — anything you don't want to forget. Sort it out later.</p>
       </div>
 
-      <form onSubmit={handleQuickAdd} className="card p-3 flex items-center gap-2">
+      <form onSubmit={handleQuickAdd} className="card p-3 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2">
         <input
           value={quickText}
           onChange={(e) => setQuickText(e.target.value)}
-          className="flex-1 bg-transparent border-none focus:outline-none text-sm px-2"
-          placeholder="Quick capture \u2014 type and hit Enter..."
+          className="w-full sm:flex-1 bg-transparent border-none focus:outline-none text-sm px-2 py-1"
+          placeholder="Quick capture — type and hit Enter..."
         />
-        <button
-          type="button"
-          onClick={() => {
-            setEditingItem(null);
-            setModalOpen(true);
-          }}
-          className="btn-secondary text-xs px-3 py-1.5 shrink-0"
-        >
-          Add details
-        </button>
-        <button type="submit" className="btn-primary text-xs px-3 py-1.5 shrink-0 flex items-center gap-1">
-          <Plus className="w-3.5 h-3.5" /> Add
-        </button>
+        <div className="flex items-center gap-2 justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              setEditingItem(null);
+              setModalOpen(true);
+            }}
+            className="btn-secondary text-xs px-3 py-1.5 shrink-0"
+          >
+            Add details
+          </button>
+          <button type="submit" className="btn-primary text-xs px-3 py-1.5 shrink-0 flex items-center gap-1">
+            <Plus className="w-3.5 h-3.5" /> Add
+          </button>
+        </div>
       </form>
 
       <div className="grid grid-cols-3 gap-3">
