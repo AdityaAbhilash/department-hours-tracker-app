@@ -1,39 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Download, Clock, TrendingUp, Zap, CalendarDays, ListChecks, Target, Award } from 'lucide-react';
+import { Clock, TrendingUp, Zap, CalendarDays, ListChecks, Target, Award } from 'lucide-react';
 import { getStatistics } from '../store/computations';
-import { getAllSessions } from '../store/db';
 import { formatDuration, formatDate } from '../utils/formatters';
 import StatCard from '../components/StatCard';
-
-function downloadCsv(sessions) {
-  const escapeCsv = (val) => {
-    const str = String(val ?? '');
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) return `"${str.replace(/"/g, '""')}"`;
-    return str;
-  };
-
-  const rows = [['Date', 'Sign In', 'Sign Out', 'Duration', 'Notes']];
-  [...sessions]
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .forEach((s) => {
-      const dateStr = new Date(s.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-      const signInStr = s.isHoliday ? 'Holiday' : s.signInTime ? new Date(s.signInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
-      const signOutStr = s.isHoliday ? '-' : s.signOutTime ? new Date(s.signOutTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Active';
-      const mins = s.durationMinutes || 0;
-      rows.push([dateStr, signInStr, signOutStr, `${Math.floor(mins / 60)}h ${mins % 60}m`, s.notes || '']);
-    });
-
-  const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'department-hours-export.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
 
 export default function Statistics() {
   const [stats, setStats] = useState(getStatistics());
@@ -42,15 +11,10 @@ export default function Statistics() {
     setStats(getStatistics());
   }, []);
 
-  const handleExport = () => downloadCsv(getAllSessions());
-
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-10">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Statistics</h1>
-        <button onClick={handleExport} className="btn-secondary flex items-center gap-2 text-sm">
-          <Download className="w-4 h-4" /> Export CSV
-        </button>
       </div>
 
       {!stats.hasData ? (

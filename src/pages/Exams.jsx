@@ -1,23 +1,67 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Pencil, Trash2, X, FileQuestion, MapPin, Clock3, Armchair } from 'lucide-react';
-import { getAllExams, addExam, updateExam, deleteExam } from '../store/db';
+import { getAllExams, addExam, updateExam, deleteExam, getTimetable } from '../store/db';
 import { formatDate } from '../utils/formatters';
 import ConfirmDialog from '../components/ConfirmDialog';
 
-const emptyForm = { subject: '', date: '', time: '', roomNo: '', seatNo: '', notes: '' };
+const CUSTOM_SUBJECT = '__custom__';
 
-function ExamFormModal({ exam, onClose, onSave }) {
-  const [form, setForm] = useState(exam || emptyForm);
+function uniqueSubjectsFromTimetable() {
+  const entries = getTimetable();
+  const seen = new Map();
+  entries.forEach((e) => {
+    const label = e.courseCode ? `${e.courseCode} \u2014 ${e.courseName}` : e.courseName;
+    if (label && !seen.has(label)) seen.set(label, label);
+  });
+  return Array.from(seen.values()).sort();
+}
+
+const emptyForm = (subjectOptions) => ({
+  subject: subjectOptions[0] || CUSTOM_SUBJECT,
+  customSubject: '',
+  date: '',
+  time: '',
+  roomNo: '',
+  seatNo: '',
+  notes: ''
+});
+
+function ExamFormModal({ exam, subjectOptions, onClose, onSave }) {
+  const initial = exam
+    ? {
+        subject: subjectOptions.includes(exam.subject) ? exam.subject : CUSTOM_SUBJECT,
+        customSubject: subjectOptions.includes(exam.subject) ? '' : exam.subject,
+        date: exam.date,
+        time: exam.time || '',
+        roomNo: exam.roomNo || '',
+        seatNo: exam.seatNo || '',
+        notes: exam.notes || ''
+      }
+    : emptyForm(subjectOptions);
+
+  const [form, setForm] = useState(initial);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(form);
+    const subject = form.subject === CUSTOM_SUBJECT ? form.customSubject.trim() : form.subject;
+    if (!subject) {
+      alert('Please select or enter a subject.');
+      return;
+    }
+    onSave({
+      subject,
+      date: form.date,
+      time: form.time,
+      roomNo: form.roomNo,
+      seatNo: form.seatNo,
+      notes: form.notes
+    });
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full md:max-w-md bg-white dark:bg-gray-900 rounded-t-3xl md:rounded-3xl shadow-xl p-6">
+      <div className="relative w-full md:max-w-md bg-white dark:bg-gray-900 rounded-t-3xl md:rounded-3xl shadow-xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-semibold text-lg">{exam ? 'Edit Exam' : 'Add Exam'}</h3>
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
@@ -28,7 +72,21 @@ function ExamFormModal({ exam, onClose, onSave }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Subject / Course</label>
-            <input required value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className="input-field" placeholder="E3 257 - Embedded System Design" />
+            <select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className="input-field">
+              {subjectOptions.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+              <option value={CUSTOM_SUBJECT}>Type manually...</option>
+            </select>
+            {form.subject === CUSTOM_SUBJECT && (
+              <input
+                autoFocus
+                value={form.customSubject}
+                onChange={(e) => setForm({ ...form, customSubject: e.target.value })}
+                className="input-field mt-2"
+                placeholder="E3 257 - Embedded System Design"
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -73,6 +131,8 @@ export default function Exams() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExam, setEditingExam] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const subjectOptions = useMemo(() => uniqueSubjectsFromTimetable(), []);
 
   useEffect(() => {
     setExams(getAllExams());
@@ -183,6 +243,7 @@ export default function Exams() {
       {modalOpen && (
         <ExamFormModal
           exam={editingExam}
+          subjectOptions={subjectOptions}
           onClose={() => {
             setModalOpen(false);
             setEditingExam(null);
