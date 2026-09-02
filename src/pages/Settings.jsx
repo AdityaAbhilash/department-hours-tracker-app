@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
-import { Sun, Moon, Check, Download, Upload, Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Sun, Moon, Check, Download, Upload, Trash2, BellRing } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { useSettings } from '../hooks/useSettings';
 import { useTheme } from '../hooks/useTheme';
 import { exportAllData, importAllData, clearAllData } from '../store/db';
+import { checkExactAlarmStatus, resyncAllReminders } from '../utils/notifications';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function Settings() {
@@ -43,6 +44,26 @@ export default function Settings() {
   };
 
   const [exporting, setExporting] = useState(false);
+  const [exactAlarmStatus, setExactAlarmStatus] = useState('unknown');
+  const [resyncing, setResyncing] = useState(false);
+  const [resyncMessage, setResyncMessage] = useState('');
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      checkExactAlarmStatus().then(setExactAlarmStatus);
+    }
+  }, []);
+
+  const handleResync = async () => {
+    setResyncing(true);
+    setResyncMessage('');
+    try {
+      await resyncAllReminders();
+      setResyncMessage('All upcoming reminders have been re-scheduled.');
+    } finally {
+      setResyncing(false);
+    }
+  };
 
   const handleExportData = async () => {
     const data = exportAllData();
@@ -184,6 +205,30 @@ export default function Settings() {
             <Moon className="w-4 h-4" /> Dark
           </button>
         </div>
+      </div>
+
+      <div className="card p-6 space-y-4">
+        <div>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100">Notifications & Reminders</h3>
+          <p className="text-sm text-gray-400 mt-1">
+            If reminders set far in advance aren't arriving on time, Android is likely delaying or dropping them in the background.
+          </p>
+        </div>
+
+        {exactAlarmStatus === 'denied' && (
+          <div className="text-sm text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950 px-3 py-2.5 rounded-xl">
+            Exact alarms appear to be off for this app. For reminders to arrive on time, go to <strong>Settings → Apps → Department Hours Tracker → Alarms & reminders</strong> and allow it, and set <strong>Battery → Unrestricted</strong>.
+          </div>
+        )}
+
+        {resyncMessage && <div className="text-sm text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950 px-3 py-2 rounded-xl">{resyncMessage}</div>}
+
+        <button onClick={handleResync} disabled={resyncing} className="btn-secondary w-full flex items-center justify-center gap-2 text-sm disabled:opacity-60">
+          <BellRing className="w-4 h-4" /> {resyncing ? 'Re-syncing...' : 'Re-sync All Reminders'}
+        </button>
+        <p className="text-xs text-gray-400">
+          This re-schedules every upcoming reminder. It runs automatically each time you open the app, but you can also run it manually if a reminder didn't arrive.
+        </p>
       </div>
 
       <div className="card p-6 space-y-4">
