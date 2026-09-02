@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   Plus, X, Pencil, Trash2, CheckSquare, StickyNote, HelpCircle, Lightbulb,
-  Circle, CheckCircle2, ChevronDown, ChevronUp, BellRing, Flag, ListPlus, Sparkles
+  Circle, CheckCircle2, ChevronDown, ChevronUp, BellRing, Flag, ListPlus, Sparkles, Maximize2, Copy, Check
 } from 'lucide-react';
 import { getAllCaptureItems, addCaptureItem, updateCaptureItem, deleteCaptureItem, getTimetable } from '../store/db';
 import { scheduleRemindersForDeadline, cancelRemindersForDeadline, REMINDER_OPTIONS } from '../utils/notifications';
@@ -292,7 +292,65 @@ function ItemFormModal({ item, subjectOptions, onClose, onSave }) {
   );
 }
 
-function ItemCard({ item, onToggleStatus, onToggleSubtask, onEdit, onDelete }) {
+function NoteViewModal({ note, onClose, onEdit, onDelete }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(note.title);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error('Copy failed', err);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative w-full md:max-w-lg bg-white dark:bg-gray-900 rounded-t-3xl md:rounded-3xl shadow-xl p-6 max-h-[90vh] flex flex-col">
+        <div className="flex items-start justify-between mb-4 gap-3">
+          <div className="min-w-0">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+              <StickyNote className="w-3 h-3" /> Note
+            </span>
+            {note.subject && <p className="text-xs text-gray-400 mt-0.5 truncate">{note.subject}</p>}
+          </div>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 shrink-0">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Full-width, exactly like the box you typed it in \u2014 this is the
+            same text shown in the compact list preview, just without the
+            narrower card width reflowing the line breaks differently. */}
+        <div className="flex-1 overflow-y-auto -mx-1 px-1">
+          <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{note.title}</p>
+          {note.details && (
+            <>
+              <div className="h-px bg-gray-100 dark:bg-gray-800 my-4" />
+              <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-words">{note.details}</p>
+            </>
+          )}
+        </div>
+
+        <div className="flex gap-2 pt-4 mt-2 border-t border-gray-100 dark:border-gray-800">
+          <button onClick={handleCopy} className="btn-secondary flex-1 flex items-center justify-center gap-1.5 text-sm">
+            {copied ? <><Check className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy text</>}
+          </button>
+          <button onClick={() => onEdit(note)} className="btn-secondary flex-1 flex items-center justify-center gap-1.5 text-sm">
+            <Pencil className="w-4 h-4" /> Edit
+          </button>
+          <button onClick={() => onDelete(note)} className="px-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950 flex items-center justify-center shrink-0">
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ItemCard({ item, onToggleStatus, onToggleSubtask, onEdit, onDelete, onViewNote }) {
   const [expanded, setExpanded] = useState(false);
   const type = typeMeta(item.type);
   const Icon = type.icon;
@@ -300,26 +358,38 @@ function ItemCard({ item, onToggleStatus, onToggleSubtask, onEdit, onDelete }) {
   const progress = subtaskProgress(item.subtasks);
   const overdue = item.dueAt && new Date(item.dueAt) < new Date() && item.status !== 'done';
   const done = item.status === 'done';
-  const isLongNote = item.type === 'note' && (item.title.includes('\n') || item.title.length > 220);
+  const isNote = item.type === 'note';
+  const isLongNote = isNote && (item.title.includes('\n') || item.title.length > 220);
 
   return (
     <div className={`card p-4 border-l-4 ${priority.border || 'border-l-transparent'} ${done ? 'opacity-60' : ''}`}>
       <div className="flex items-start gap-3">
-        <button onClick={() => onToggleStatus(item)} className="mt-0.5 shrink-0 text-gray-300 hover:text-emerald-500">
-          {done ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Circle className="w-5 h-5" />}
-        </button>
+        {isNote ? (
+          // Notes are a record, not a to-do \u2014 there's nothing to "complete",
+          // so this slot just shows the type icon instead of a checkbox.
+          <span className="mt-0.5 shrink-0 text-amber-400">
+            <Icon className="w-5 h-5" />
+          </span>
+        ) : (
+          <button onClick={() => onToggleStatus(item)} className="mt-0.5 shrink-0 text-gray-300 hover:text-emerald-500">
+            {done ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <Circle className="w-5 h-5" />}
+          </button>
+        )}
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${type.color}`}>
-              <Icon className="w-3 h-3" /> {type.label}
-            </span>
+            {!isNote && (
+              <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${type.color}`}>
+                <Icon className="w-3 h-3" /> {type.label}
+              </span>
+            )}
             {item.subject && <span className="text-[11px] text-gray-400">{item.subject}</span>}
           </div>
 
           <p
-            className={`text-sm font-medium whitespace-pre-wrap break-words ${done ? 'line-through text-gray-400' : ''}`}
-            style={isLongNote && !expanded ? { display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : undefined}
+            onClick={isNote ? () => onViewNote(item) : undefined}
+            className={`text-sm font-medium whitespace-pre-wrap break-words ${done ? 'line-through text-gray-400' : ''} ${isNote ? 'cursor-pointer' : ''}`}
+            style={isLongNote ? { display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : undefined}
           >
             {item.title}
           </p>
@@ -342,15 +412,19 @@ function ItemCard({ item, onToggleStatus, onToggleSubtask, onEdit, onDelete }) {
             </div>
           )}
 
-          {(item.subtasks?.length > 0 || item.details || isLongNote) && (
-            <button onClick={() => setExpanded((e) => !e)} className="mt-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex items-center gap-1">
-              {expanded
-                ? <><ChevronUp className="w-3.5 h-3.5" /> {isLongNote ? 'Show less' : 'Hide details'}</>
-                : <><ChevronDown className="w-3.5 h-3.5" /> {isLongNote ? 'Show full note' : 'Show details'}</>}
+          {isNote ? (
+            <button onClick={() => onViewNote(item)} className="mt-2 text-xs text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1">
+              <Maximize2 className="w-3.5 h-3.5" /> Open note
             </button>
+          ) : (
+            (item.subtasks?.length > 0 || item.details) && (
+              <button onClick={() => setExpanded((e) => !e)} className="mt-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex items-center gap-1">
+                {expanded ? <><ChevronUp className="w-3.5 h-3.5" /> Hide details</> : <><ChevronDown className="w-3.5 h-3.5" /> Show details</>}
+              </button>
+            )
           )}
 
-          {expanded && (
+          {!isNote && expanded && (
             <div className="mt-2 space-y-2">
               {item.subtasks?.length > 0 && (
                 <div className="space-y-1">
@@ -388,6 +462,7 @@ export default function Capture() {
   const [quickText, setQuickText] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [showDone, setShowDone] = useState(false);
+  const [viewingNote, setViewingNote] = useState(null);
 
   const subjectOptions = useMemo(() => uniqueSubjectsFromTimetable(), []);
   const refresh = () => setItems(getAllCaptureItems());
@@ -539,6 +614,7 @@ export default function Capture() {
                 setModalOpen(true);
               }}
               onDelete={setDeleteTarget}
+              onViewNote={setViewingNote}
             />
           ))}
         </div>
@@ -553,6 +629,22 @@ export default function Capture() {
             setEditingItem(null);
           }}
           onSave={handleSave}
+        />
+      )}
+
+      {viewingNote && (
+        <NoteViewModal
+          note={viewingNote}
+          onClose={() => setViewingNote(null)}
+          onEdit={(i) => {
+            setViewingNote(null);
+            setEditingItem(i);
+            setModalOpen(true);
+          }}
+          onDelete={(i) => {
+            setViewingNote(null);
+            setDeleteTarget(i);
+          }}
         />
       )}
 
