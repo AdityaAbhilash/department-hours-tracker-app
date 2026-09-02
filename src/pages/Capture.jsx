@@ -145,9 +145,13 @@ function ItemFormModal({ item, subjectOptions, onClose, onSave }) {
               required
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              rows={2}
-              className="input-field resize-none text-base"
-              placeholder="What's on your mind? A task, a note, a question, an idea..."
+              rows={form.type === 'note' ? 10 : 2}
+              className={`input-field text-base whitespace-pre-wrap ${form.type === 'note' ? 'resize-y' : 'resize-none'}`}
+              placeholder={
+                form.type === 'note'
+                  ? "Write your note here \u2014 press Enter for a new line, leave a blank line between paragraphs. As long as you like."
+                  : "What's on your mind? A task, a note, a question, an idea..."
+              }
             />
           </div>
 
@@ -296,6 +300,7 @@ function ItemCard({ item, onToggleStatus, onToggleSubtask, onEdit, onDelete }) {
   const progress = subtaskProgress(item.subtasks);
   const overdue = item.dueAt && new Date(item.dueAt) < new Date() && item.status !== 'done';
   const done = item.status === 'done';
+  const isLongNote = item.type === 'note' && (item.title.includes('\n') || item.title.length > 220);
 
   return (
     <div className={`card p-4 border-l-4 ${priority.border || 'border-l-transparent'} ${done ? 'opacity-60' : ''}`}>
@@ -312,7 +317,12 @@ function ItemCard({ item, onToggleStatus, onToggleSubtask, onEdit, onDelete }) {
             {item.subject && <span className="text-[11px] text-gray-400">{item.subject}</span>}
           </div>
 
-          <p className={`text-sm font-medium ${done ? 'line-through text-gray-400' : ''}`}>{item.title}</p>
+          <p
+            className={`text-sm font-medium whitespace-pre-wrap break-words ${done ? 'line-through text-gray-400' : ''}`}
+            style={isLongNote && !expanded ? { display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : undefined}
+          >
+            {item.title}
+          </p>
 
           {item.dueAt && (
             <p className={`text-xs mt-1 font-medium ${overdue ? 'text-red-500' : 'text-gray-400'}`}>
@@ -332,9 +342,11 @@ function ItemCard({ item, onToggleStatus, onToggleSubtask, onEdit, onDelete }) {
             </div>
           )}
 
-          {(item.subtasks?.length > 0 || item.details) && (
+          {(item.subtasks?.length > 0 || item.details || isLongNote) && (
             <button onClick={() => setExpanded((e) => !e)} className="mt-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex items-center gap-1">
-              {expanded ? <><ChevronUp className="w-3.5 h-3.5" /> Hide details</> : <><ChevronDown className="w-3.5 h-3.5" /> Show details</>}
+              {expanded
+                ? <><ChevronUp className="w-3.5 h-3.5" /> {isLongNote ? 'Show less' : 'Hide details'}</>
+                : <><ChevronDown className="w-3.5 h-3.5" /> {isLongNote ? 'Show full note' : 'Show details'}</>}
             </button>
           )}
 
