@@ -61,6 +61,21 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Add exact-alarm permission for reliable reminders
+        # Without this, Android 12+ silently downgrades every scheduled
+        # notification to "inexact" \u2014 batched into occasional maintenance
+        # windows instead of firing at the requested time. This is why short
+        # reminders mostly seemed to work (small delay is invisible) while
+        # long-scheduled ones were unreliable or never arrived. `cap add`
+        # regenerates this manifest from scratch each time, so it has to be
+        # re-added on every build rather than committed once.
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if ! grep -q "SCHEDULE_EXACT_ALARM" "$MANIFEST"; then
+            sed -i '/<manifest /a\    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />' "$MANIFEST"
+          fi
+          grep "SCHEDULE_EXACT_ALARM" "$MANIFEST"
+
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
