@@ -13,8 +13,9 @@ import {
   getMonthStart,
   getMonthEnd,
   getMonthWeekRange,
+  getWeekBucketRange,
+  advanceWeekBucket,
   getDateRangeDays,
-  addDays,
   toDateKey,
   startOfDay,
   endOfDay
@@ -81,8 +82,9 @@ export function getTodayData(now = new Date()) {
 
 export function getWeekData(offset = 0, now = new Date()) {
   const holidaySet = loadHolidaySet();
-  const referenceDate = addDays(now, offset * 7);
-  const { start: weekStart, end: weekEnd, weekIndex, weekCount } = getMonthWeekRange(referenceDate);
+  const todayBucket = getMonthWeekRange(now);
+  const { year, month, weekIndex } = advanceWeekBucket(now.getFullYear(), now.getMonth(), todayBucket.weekIndex, offset);
+  const { start: weekStart, end: weekEnd, weekCount } = getWeekBucketRange(year, month, weekIndex);
   const weekDayDates = getDateRangeDays(weekStart, weekEnd);
 
   const sessions = sessionsInRange(getAllSessions(), weekStart, weekEnd);
