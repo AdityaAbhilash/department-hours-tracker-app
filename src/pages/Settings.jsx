@@ -15,10 +15,7 @@ export default function Settings() {
   const [form, setForm] = useState({
     name: settings.name,
     studentId: settings.studentId,
-    department: settings.department,
-    weeklyTargetHours: settings.weeklyTargetHours,
-    monthlyTargetHours: settings.monthlyTargetHours,
-    holidayHours: settings.holidayHours
+    department: settings.department
   });
   const [success, setSuccess] = useState(false);
   const [clearConfirm, setClearConfirm] = useState(false);
@@ -29,10 +26,7 @@ export default function Settings() {
     update({
       name: form.name,
       studentId: form.studentId,
-      department: form.department,
-      weeklyTargetHours: Number(form.weeklyTargetHours),
-      monthlyTargetHours: Number(form.monthlyTargetHours),
-      holidayHours: Number(form.holidayHours)
+      department: form.department
     });
     setSuccess(true);
     setTimeout(() => setSuccess(false), 2500);
@@ -168,22 +162,10 @@ export default function Settings() {
         </div>
 
         <div className="border-t border-gray-100 dark:border-gray-800 pt-5">
-          <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Targets</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Weekly target (hours)</label>
-              <input type="number" min="1" value={form.weeklyTargetHours} onChange={(e) => setForm({ ...form, weeklyTargetHours: e.target.value })} className="input-field" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Monthly target (hours)</label>
-              <input type="number" min="1" value={form.monthlyTargetHours} onChange={(e) => setForm({ ...form, monthlyTargetHours: e.target.value })} className="input-field" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Holiday hours (auto-credited per holiday)</label>
-            <input type="number" min="0" step="0.5" value={form.holidayHours} onChange={(e) => setForm({ ...form, holidayHours: e.target.value })} className="input-field max-w-[160px]" />
-            <p className="text-xs text-gray-400 mt-1">Used as the default when you tap "Mark Holiday" on the Dashboard or History page.</p>
-          </div>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Targets</h3>
+          <p className="text-sm text-gray-400">
+            Hours needed are calculated automatically: <strong>10 hours &times; number of working days</strong> in the week or month. Weekends are always non-working; use <strong>Mark Holiday</strong> on the Dashboard or History page to exclude any other date.
+          </p>
         </div>
 
         <button type="submit" className="btn-primary w-full">Save Changes</button>

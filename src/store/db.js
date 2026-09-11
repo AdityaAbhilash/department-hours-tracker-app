@@ -13,16 +13,14 @@ const KEYS = {
   TIMETABLE: 'dht_timetable',
   LINKS: 'dht_links',
   DEADLINES: 'dht_deadlines',
-  CAPTURE: 'dht_capture'
+  CAPTURE: 'dht_capture',
+  HOLIDAYS: 'dht_holidays'
 };
 
 const DEFAULT_SETTINGS = {
   name: 'Student',
   studentId: '',
   department: '',
-  weeklyTargetHours: 50,
-  monthlyTargetHours: 200,
-  holidayHours: 8,
   theme: 'light'
 };
 
@@ -262,6 +260,36 @@ export function getPendingDeadlineCount() {
   return purgeExpiredDeadlines().length;
 }
 
+// ---------- Holidays (marks a date as a non-working day) ----------
+// A holiday here is purely a label on a date, not a credited amount of time
+// — it just excludes that date from the "working days" count used to
+// compute how many hours are required for the week/month. Signing in and
+// out on a marked holiday still works and still counts toward hours worked;
+// only the *target* changes.
+export function getHolidays() {
+  return read(KEYS.HOLIDAYS, []);
+}
+
+export function saveHolidays(holidays) {
+  write(KEYS.HOLIDAYS, holidays);
+}
+
+export function addHoliday(date, note = '') {
+  const holidays = getHolidays();
+  if (holidays.some((h) => h.date === date)) return holidays;
+  const updated = [...holidays, { date, note }];
+  saveHolidays(updated);
+  return updated;
+}
+
+export function removeHoliday(date) {
+  saveHolidays(getHolidays().filter((h) => h.date !== date));
+}
+
+export function isHolidayDate(date) {
+  return getHolidays().some((h) => h.date === date);
+}
+
 // ---------- Capture (flexible tasks / notes / questions / ideas) ----------
 // Deliberately unopinionated: every field except `title` is optional, so it
 // can hold anything from a one-line reminder to a fully broken-down task
@@ -325,6 +353,7 @@ export function exportAllData() {
     links: getAllLinks(),
     deadlines: getAllDeadlines(),
     capture: getAllCaptureItems(),
+    holidays: getHolidays(),
     exportedAt: new Date().toISOString()
   };
 }
@@ -337,6 +366,7 @@ export function importAllData(data) {
   if (data.links) write(KEYS.LINKS, data.links);
   if (data.deadlines) write(KEYS.DEADLINES, data.deadlines);
   if (data.capture) write(KEYS.CAPTURE, data.capture);
+  if (data.holidays) write(KEYS.HOLIDAYS, data.holidays);
 }
 
 export function clearAllData() {

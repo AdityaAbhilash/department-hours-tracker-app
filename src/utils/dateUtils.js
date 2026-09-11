@@ -1,6 +1,11 @@
 /**
  * Date utility functions — mirrors the logic used server-side in the web version,
- * now running entirely in the browser. Week is always Monday -> Sunday.
+ * now running entirely in the browser.
+ *
+ * "Weeks" are NOT calendar (Mon–Sun) weeks — they're fixed buckets within a
+ * calendar month: Week 1 = days 1–7, Week 2 = 8–14, Week 3 = 15–21,
+ * Week 4 = 22–28, Week 5 = whatever's left (29–30/31, or just day 29 in a
+ * leap-year February).
  */
 export function startOfDay(date) {
   const d = new Date(date);
@@ -12,21 +17,6 @@ export function endOfDay(date) {
   const d = new Date(date);
   d.setHours(23, 59, 59, 999);
   return d;
-}
-
-export function getWeekStart(date = new Date()) {
-  const d = startOfDay(date);
-  const day = d.getDay();
-  const diff = day === 0 ? 6 : day - 1;
-  d.setDate(d.getDate() - diff);
-  return d;
-}
-
-export function getWeekEnd(date = new Date()) {
-  const start = getWeekStart(date);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  return endOfDay(end);
 }
 
 export function getMonthStart(date = new Date()) {
@@ -45,18 +35,31 @@ export function addDays(date, n) {
   return d;
 }
 
-export function getWeekDays(date = new Date()) {
-  const start = getWeekStart(date);
+// Returns every Date from start to end inclusive (both truncated to their
+// own day — time-of-day is ignored).
+export function getDateRangeDays(start, end) {
   const days = [];
-  for (let i = 0; i < 7; i++) days.push(addDays(start, i));
+  let d = startOfDay(start);
+  const endD = startOfDay(end);
+  while (d <= endD) {
+    days.push(new Date(d));
+    d = addDays(d, 1);
+  }
   return days;
 }
 
-export function daysRemainingInWeek(date = new Date()) {
-  const d = startOfDay(date);
-  const day = d.getDay();
-  const isoDay = day === 0 ? 7 : day;
-  return 7 - isoDay + 1;
+// The month-relative week bucket (1–5) that `date` falls into, plus the
+// start/end of that bucket and how many such buckets the month has.
+export function getMonthWeekRange(date = new Date()) {
+  const dayOfMonth = date.getDate();
+  const weekIndex = Math.ceil(dayOfMonth / 7);
+  const daysInMonth = getMonthEnd(date).getDate();
+  const startDay = (weekIndex - 1) * 7 + 1;
+  const endDay = Math.min(weekIndex * 7, daysInMonth);
+  const start = new Date(date.getFullYear(), date.getMonth(), startDay, 0, 0, 0, 0);
+  const end = new Date(date.getFullYear(), date.getMonth(), endDay, 23, 59, 59, 999);
+  const weekCount = Math.ceil(daysInMonth / 7);
+  return { start, end, weekIndex, weekCount };
 }
 
 export function daysRemainingInMonth(date = new Date()) {
@@ -73,3 +76,4 @@ export function toDateKey(date) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+
