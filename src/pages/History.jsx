@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Sun } from 'lucide-react';
 import { getHistoryForMonth } from '../store/computations';
-import { addSession, updateSession, deleteSession } from '../store/db';
-import { useSettings } from '../hooks/useSettings';
+import { addSession, updateSession, deleteSession, addHoliday, removeHoliday } from '../store/db';
 import { formatDate, formatTime, formatDuration, formatMonthLabel } from '../utils/formatters';
 import SessionFormModal from '../components/SessionFormModal';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -11,7 +10,6 @@ import HolidayModal from '../components/HolidayModal';
 const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
 export default function History() {
-  const { settings } = useSettings();
   const [cursor, setCursor] = useState(new Date());
   const [days, setDays] = useState([]);
   const [expandedDate, setExpandedDate] = useState(null);
@@ -52,9 +50,14 @@ export default function History() {
     load();
   };
 
-  const handleHolidayConfirm = ({ date, hours, notes }) => {
-    addSession({ date, signInTime: null, signOutTime: null, durationMinutes: Math.round(hours * 60), notes, isHoliday: true });
+  const handleHolidayConfirm = ({ date, notes }) => {
+    addHoliday(date, notes);
     setHolidayModalOpen(false);
+    load();
+  };
+
+  const handleRemoveHoliday = (date) => {
+    removeHoliday(date);
     load();
   };
 
@@ -97,11 +100,8 @@ export default function History() {
         <div className="space-y-3">
           {days.map((day) => (
             <div key={day.date} className="card overflow-hidden">
-              <button
-                onClick={() => setExpandedDate(expandedDate === day.date ? null : day.date)}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-              >
-                <div>
+              <div className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                <button onClick={() => setExpandedDate(expandedDate === day.date ? null : day.date)} className="text-left flex-1 min-w-0">
                   <p className="font-medium text-sm flex items-center gap-1.5">
                     {formatDate(day.date)}
                     {day.isHoliday && <Sun className="w-3.5 h-3.5 text-orange-500" />}
@@ -111,12 +111,21 @@ export default function History() {
                       ? 'Holiday'
                       : `${formatTime(day.firstEntry)} \u2192 ${day.lastExit ? formatTime(day.lastExit) : 'Active'}`}
                   </p>
-                </div>
-                <div className="text-right">
+                </button>
+                <button onClick={() => setExpandedDate(expandedDate === day.date ? null : day.date)} className="text-right shrink-0">
                   <p className="font-semibold text-sm">{formatDuration(day.totalMinutes)}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{day.numberOfSessions} entr{day.numberOfSessions !== 1 ? 'ies' : 'y'}</p>
-                </div>
-              </button>
+                </button>
+                {day.isHoliday && day.numberOfSessions === 0 && (
+                  <button
+                    onClick={() => handleRemoveHoliday(day.date)}
+                    className="ml-2 p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 shrink-0"
+                    title="Remove holiday mark"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
 
               {expandedDate === day.date && (
                 <div className="border-t border-gray-100 dark:border-gray-800 p-4 space-y-2 bg-gray-50/50 dark:bg-gray-900/50">
@@ -156,7 +165,7 @@ export default function History() {
 
       {modalOpen && <SessionFormModal session={editingSession} onClose={() => setModalOpen(false)} onSave={handleSave} />}
       {holidayModalOpen && (
-        <HolidayModal defaultDate={cursor} holidayHours={settings.holidayHours} onClose={() => setHolidayModalOpen(false)} onConfirm={handleHolidayConfirm} />
+        <HolidayModal defaultDate={cursor} onClose={() => setHolidayModalOpen(false)} onConfirm={handleHolidayConfirm} />
       )}
       {deleteTarget && (
         <ConfirmDialog

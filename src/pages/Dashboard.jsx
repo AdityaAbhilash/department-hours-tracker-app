@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Sun, CalendarDays, CalendarRange, Flame, TrendingUp, Timer, CalendarCheck2, LogIn, PartyPopper, ClipboardList, Sparkles } from 'lucide-react';
 import { getTodayData, getWeekData, getMonthData, getInsights } from '../store/computations';
-import { addSession, updateSession, getActiveSession, getAllDeadlines, getOpenCaptureCount } from '../store/db';
+import { addSession, updateSession, getActiveSession, getAllDeadlines, getOpenCaptureCount, addHoliday } from '../store/db';
 import { calculateDuration } from '../utils/durationUtils';
 import { useSettings } from '../hooks/useSettings';
 import StatCard from '../components/StatCard';
 import ProgressCard from '../components/ProgressCard';
 import WeeklyChart from '../components/WeeklyChart';
+import MonthlyWeeksChart from '../components/MonthlyWeeksChart';
 import SessionTimeline from '../components/SessionTimeline';
 import LiveTimer from '../components/LiveTimer';
 import StatusBadge from '../components/StatusBadge';
@@ -71,8 +72,8 @@ export default function Dashboard() {
     refreshAll();
   };
 
-  const handleHolidayConfirm = ({ date, hours, notes }) => {
-    addSession({ date, signInTime: null, signOutTime: null, durationMinutes: Math.round(hours * 60), notes, isHoliday: true });
+  const handleHolidayConfirm = ({ date, notes }) => {
+    addHoliday(date, notes);
     setHolidayModalOpen(false);
     refreshAll();
   };
@@ -135,6 +136,8 @@ export default function Dashboard() {
       </div>
 
       <WeeklyChart data={week} offset={weekOffset} onOffsetChange={setWeekOffset} />
+
+      <MonthlyWeeksChart monthData={month} />
 
       <div className="grid md:grid-cols-2 gap-6">
         <ProgressCard
@@ -200,7 +203,6 @@ export default function Dashboard() {
       {holidayModalOpen && (
         <HolidayModal
           defaultDate={new Date()}
-          holidayHours={settings.holidayHours}
           onClose={() => setHolidayModalOpen(false)}
           onConfirm={handleHolidayConfirm}
         />

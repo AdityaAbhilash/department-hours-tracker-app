@@ -20,7 +20,7 @@ export default function WeeklyChart({ data, offset, onOffsetChange }) {
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <h3 className="font-semibold text-gray-800 dark:text-gray-100">Weekly Hours</h3>
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100">Weekly Hours &mdash; Week {data.weekIndex}</h3>
         <div className="flex items-center gap-2">
           <button onClick={() => onOffsetChange(offset - 1)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" aria-label="Previous week">
             <ChevronLeft className="w-4 h-4" />
