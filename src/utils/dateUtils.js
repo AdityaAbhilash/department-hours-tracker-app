@@ -62,6 +62,59 @@ export function getMonthWeekRange(date = new Date()) {
   return { start, end, weekIndex, weekCount };
 }
 
+export function getWeekBucketCount(year, month) {
+  const daysInMonth = getMonthEnd(new Date(year, month, 1)).getDate();
+  return Math.ceil(daysInMonth / 7);
+}
+
+export function getWeekBucketRange(year, month, weekIndex) {
+  const daysInMonth = getMonthEnd(new Date(year, month, 1)).getDate();
+  const startDay = (weekIndex - 1) * 7 + 1;
+  const endDay = Math.min(weekIndex * 7, daysInMonth);
+  const start = new Date(year, month, startDay, 0, 0, 0, 0);
+  const end = new Date(year, month, endDay, 23, 59, 59, 999);
+  return { start, end, weekCount: getWeekBucketCount(year, month) };
+}
+
+// Moves forward/back by whole week-buckets rather than by a fixed number of
+// days — a plain "+7 days" step would overshoot short buckets like week 5
+// (which can be as little as 1–2 days), skipping straight into next month's
+// week 1 instead of landing on it. Walking bucket-to-bucket like this
+// guarantees every bucket, including short ones, is actually reachable.
+export function advanceWeekBucket(year, month, weekIndex, steps) {
+  let y = year;
+  let m = month;
+  let w = weekIndex;
+  while (steps > 0) {
+    const weekCount = getWeekBucketCount(y, m);
+    if (w < weekCount) {
+      w += 1;
+    } else {
+      m += 1;
+      if (m > 11) {
+        m = 0;
+        y += 1;
+      }
+      w = 1;
+    }
+    steps -= 1;
+  }
+  while (steps < 0) {
+    if (w > 1) {
+      w -= 1;
+    } else {
+      m -= 1;
+      if (m < 0) {
+        m = 11;
+        y -= 1;
+      }
+      w = getWeekBucketCount(y, m);
+    }
+    steps += 1;
+  }
+  return { year: y, month: m, weekIndex: w };
+}
+
 export function daysRemainingInMonth(date = new Date()) {
   const end = getMonthEnd(date);
   const d = startOfDay(date);
